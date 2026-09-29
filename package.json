@@ -1,0 +1,16 @@
+{
+  "name": "pagebridge",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w @pagebridge/api\" \"npm run worker:dev -w @pagebridge/api\" \"npm run dev -w @pagebridge/web\"",
+    "build": "npm run build -w @pagebridge/api && npm run build -w @pagebridge/web",
+    "typecheck": "npm run typecheck -w @pagebridge/api && npm run typecheck -w @pagebridge/web",
+    "db:generate": "npm run db:generate -w @pagebridge/api",
+    "db:migrate": "npm run db:migrate -w @pagebridge/api",
+    "extension:zip": "cd extension && zip -r ../pagebridge-extension.zip ."
+  },
+  "devDependencies": {"concurrently": "^9.1.2"},
+  "engines": {"node": ">=20.0.0"}
+}

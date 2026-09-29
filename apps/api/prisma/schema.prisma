@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ConnectionStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+  ERROR
+}
+enum PageStatus {
+  ACTIVE
+  RESTRICTED
+  UNKNOWN
+}
+enum MergeStatus {
+  PENDING
+  CHECKING
+  ELIGIBLE
+  REQUIRES_USER_ACTION
+  PROCESSING
+  COMPLETED
+  FAILED
+  REJECTED
+}
+enum LogStatus {
+  SUCCESS
+  FAILURE
+  INFO
+}
+
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  name String
+  avatar String?
+  googleSubject String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  facebookConnections FacebookConnection[]
+  mergeRequests MergeRequest[]
+  activityLogs ActivityLog[]
+  extensionTokens ExtensionToken[]
+}
+
+model FacebookConnection {
+  id String @id @default(cuid())
+  userId String
+  metaUserId String
+  encryptedAuthorizationData String
+  expiresAt DateTime?
+  status ConnectionStatus @default(ACTIVE)
+  displayName String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pages Page[]
+  @@unique([userId, metaUserId])
+}
+
+model Page {
+  id String @id @default(cuid())
+  connectionId String
+  facebookPageId String
+  name String
+  category String?
+  image String?
+  status PageStatus @default(UNKNOWN)
+  tasks String[]
+  lastSyncedAt DateTime @default(now())
+  connection FacebookConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  sourceRequests MergeRequest[] @relation("SourcePage")
+  destinationRequests MergeRequest[] @relation("DestinationPage")
+  @@unique([connectionId, facebookPageId])
+}
+
+model MergeRequest {
+  id String @id @default(cuid())
+  userId String
+  sourcePageId String
+  destinationPageId String
+  status MergeStatus @default(PENDING)
+  eligibilityResult Json?
+  errorMessage String?
+  createdAt DateTime @default(now())
+  completedAt DateTime?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourcePage Page @relation("SourcePage", fields: [sourcePageId], references: [id])
+  destinationPage Page @relation("DestinationPage", fields: [destinationPageId], references: [id])
+}
+
+model ActivityLog {
+  id String @id @default(cuid())
+  userId String?
+  action String
+  entityType String
+  entityId String?
+  status LogStatus
+  metadata Json?
+  createdAt DateTime @default(now())
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  @@index([userId, createdAt])
+}
+
+model ExtensionToken {
+  id String @id @default(cuid())
+  userId String
+  tokenHash String @unique
+  label String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  lastUsedAt DateTime?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ExtensionPairCode {
+  id String @id @default(cuid())
+  userId String
+  codeHash String @unique
+  redirectUri String
+  expiresAt DateTime
+  consumedAt DateTime?
+  createdAt DateTime @default(now())
+}
